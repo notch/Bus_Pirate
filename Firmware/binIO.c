@@ -137,9 +137,7 @@ void binBB(void) {
                 binBBversion(); //say name on return
             } else if (inByte == 6) {//goto OpenOCD mode
                 binReset();
-#ifndef BUSPIRATEV4
                 binOpenOCD();
-#endif
                 binReset();
                 binBBversion(); //say name on return
             } else if (inByte == 7) {//goto pic mode
