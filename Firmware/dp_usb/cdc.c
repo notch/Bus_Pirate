@@ -60,7 +60,7 @@ BYTE cdc_timeout_count = 0;
 BYTE ZLPpending = 0;
 BYTE lock = 0;
 
-BDentry *CDC_Outbdp, *CDC_Inbdp;
+volatile BDentry *CDC_Outbdp, *CDC_Inbdp;
 BYTE CDCFunctionError;
 
 volatile BYTE cdc_trf_state; // JTR don't see that it is really volatile in current context may be in future.

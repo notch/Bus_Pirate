@@ -31,7 +31,7 @@
 #define LA_SAMPLE_SIZE  4096
 
 extern BYTE *InPtr, *OutPtr, cdc_In_len, cdc_timeout_count;
-extern BDentry *CDC_Outbdp, *CDC_Inbdp;
+extern BDentry *CDC_Outbdp, *CDC_Inbdp; // Notch: not used, is it needed?
 //extern CDC_FLUSH_CONTROL cdc_Flush_Control;
 static unsigned int sumpSamples;
 
