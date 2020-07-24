@@ -13,6 +13,8 @@ extern struct _bpConfig bpConfig;
 #define OOCD_SRST_TRIS  BP_AUX0_DIR
 #if defined (BUSPIRATEV3)
 #define OOCD_TRST_TRIS  BP_PGD_DIR
+#elif defined (BUSPIRATEV4)
+#define OOCD_TRST_TRIS  BP_AUX2_DIR
 #endif
 
 // io ports
@@ -23,16 +25,20 @@ extern struct _bpConfig bpConfig;
 #define OOCD_SRST       BP_AUX0
 #if defined (BUSPIRATEV3)
 #define OOCD_TRST       BP_PGD
+#elif defined (BUSPIRATEV4)
+#define OOCD_TRST       BP_AUX2
 #endif
 
 // open-drain control
-#define OOCD_TDO_ODC    BP_MISO
-#define OOCD_TMS_ODC    BP_CS 
-#define OOCD_CLK_ODC    BP_CLK 
-#define OOCD_TDI_ODC    BP_MOSI 
-#define OOCD_SRST_ODC   BP_AUX0
+#define OOCD_TDO_ODC    BP_MISO_ODC
+#define OOCD_TMS_ODC    BP_CS_ODC
+#define OOCD_CLK_ODC    BP_CLK_ODC
+#define OOCD_TDI_ODC    BP_MOSI_ODC
+#define OOCD_SRST_ODC   BP_AUX0_ODC
 #if defined (BUSPIRATEV3)
-#define OOCD_TRST_ODC   BP_PGD
+#define OOCD_TRST_ODC   BP_PGD_ODC
+#elif defined (BUSPIRATEV4)
+#define OOCD_TRST_ODC   BP_AUX2_ODC
 #endif
 
 #define CMD_UNKNOWN       0x00
@@ -81,6 +87,10 @@ void binOpenOCD(void){
 	unsigned int i,j;
 	unsigned char inByte;
 	unsigned char inByte2;
+#ifdef BUSPIRATEV4
+	unsigned int count;
+	unsigned char *outbuf = buf + 2048;
+#endif
 
 	OpenOCDJtagDelay = 1;
 
@@ -184,7 +194,9 @@ this will misbehave when polling is turned off in OpenOCD
 				inByte=UART1RX();
 				inByte2=UART1RX();
 
+#ifndef BUSPIRATEV4
 				IFS0bits.U1RXIF = 0; // reset the RX flag
+#endif
 
 				j = (inByte << 8) | inByte2; // number of bit sequences
 
@@ -198,6 +210,19 @@ this will misbehave when polling is turned off in OpenOCD
 				buf[2] = inByte2;
 				binOpenOCDAnswer(buf, 3);
 
+#if defined (BUSPIRATEV4)
+				count = 0;
+				while (count < 2 * i) {
+					buf[count++] = UART1RX();
+				}
+
+				binOpenOCDTapShiftFast(buf, outbuf, j, OpenOCDJtagDelay);
+
+				count = 0;
+				while (count < i) {
+					UART1TX(outbuf[count++]);
+				}
+#else
 				// prepare the interrupt transfer
 				UART1RXBuf = (unsigned char*)bpConfig.terminalInput;
 				UART1RXToRecv = 2*i;
@@ -211,6 +236,7 @@ this will misbehave when polling is turned off in OpenOCD
 				IEC0bits.U1RXIE = 1;
 
 				binOpenOCDTapShiftFast(UART1RXBuf, UART1TXBuf, j, OpenOCDJtagDelay);
+#endif
 				break;
 			default:
 				buf[0] = 0x00; // unknown command
@@ -227,7 +253,7 @@ static void binOpenOCDPinMode(unsigned char mode) {
 	OOCD_TDI=0;
 	OOCD_CLK=0;
 	OOCD_SRST=0;
-#if defined (BUSPIRATEV3)
+#if defined (BUSPIRATEV3) || defined (BUSPIRATEV4)
 	OOCD_TRST=0;
 #endif
 	// setup open-drain if necessary
@@ -236,7 +262,7 @@ static void binOpenOCDPinMode(unsigned char mode) {
 		OOCD_CLK_ODC=1;
 		OOCD_TDI_ODC=1;
 		OOCD_SRST_ODC=1;
-#if defined (BUSPIRATEV3)
+#if defined (BUSPIRATEV3) || defined (BUSPIRATEV4)
 		OOCD_TRST_ODC=1;
 #endif
 	} else {
@@ -254,7 +280,7 @@ static void binOpenOCDPinMode(unsigned char mode) {
 		OOCD_TDI_TRIS=0;
 		OOCD_CLK_TRIS=0;
 		OOCD_SRST_TRIS=0;
-#if defined (BUSPIRATEV3)
+#if defined (BUSPIRATEV3) || defined (BUSPIRATEV4)
 		OOCD_TRST_TRIS=0;
 #endif
 		OOCD_TDO_TRIS=1;
@@ -263,7 +289,7 @@ static void binOpenOCDPinMode(unsigned char mode) {
 		OOCD_TDI_TRIS=1;
 		OOCD_CLK_TRIS=1;
 		OOCD_SRST_TRIS=1;
-#if defined (BUSPIRATEV3)
+#if defined (BUSPIRATEV3) || defined (BUSPIRATEV4)
 		OOCD_TRST_TRIS=1;
 #endif
 		OOCD_TDO_TRIS=1;
@@ -280,8 +306,16 @@ static void binOpenOCDAnswer(unsigned char *buf, unsigned int len) {
 static void binOpenOCDHandleFeature(unsigned char feat, unsigned char action) {
 	switch (feat) {
 		case FEATURE_LED:
+#if defined (BUSPIRATEV4)
+			if (action) {
+				BP_USBLED_ON();
+			} else {
+				BP_USBLED_OFF();
+			}
+#else
 			BP_LEDMODE_DIR=0; //LED to output
 			BP_LEDMODE=action;
+#endif
 			break;
 		case FEATURE_VREG:
 			if (action) {
@@ -291,7 +325,7 @@ static void binOpenOCDHandleFeature(unsigned char feat, unsigned char action) {
 			}
 			break;
 		case FEATURE_PULLUP:
-#if defined (BUSPIRATEV3)
+#if defined (BUSPIRATEV3) || defined (BUSPIRATEV4)
 			if (action) {
 				BP_PULLUP_ON();
 			} else {
@@ -299,7 +333,7 @@ static void binOpenOCDHandleFeature(unsigned char feat, unsigned char action) {
 			}
 #endif
 			break;
-#if defined (BUSPIRATEV3)
+#if defined (BUSPIRATEV3) || defined (BUSPIRATEV4)
 		case FEATURE_TRST:
 			OOCD_TRST=action;
 			break;

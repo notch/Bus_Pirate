@@ -31,6 +31,8 @@
 //--- Added JM
 #ifdef BUSPIRATEV4
 #include "jtag.h"
+// Added by notch
+#include "ejtag.h"
 #endif
 //--- End added JM
 
@@ -80,6 +82,9 @@ Commands:
 00010110 // ADC Stop
 00011000 // XSVF Player
 // End added JM
+// Added by notch
+00011001 // ejtag
+// End added by notch
 //
 010xxxxx //set input(1)/output(0) pin state (returns pin read)
  */
@@ -137,9 +142,7 @@ void binBB(void) {
                 binBBversion(); //say name on return
             } else if (inByte == 6) {//goto OpenOCD mode
                 binReset();
-#ifndef BUSPIRATEV4
                 binOpenOCD();
-#endif
                 binReset();
                 binBBversion(); //say name on return
             } else if (inByte == 7) {//goto pic mode
@@ -234,7 +237,9 @@ void binBB(void) {
             } else if (inByte == 0b11000) {  //XSVF Player to program CPLD
                 BP_VREGEN = 1;
                 bpWstring("XSV1");
-		jtag();
+                jtag();
+            } else if (inByte == 0b11001) { //ejtag
+                ejtag();
 #endif
 //--- End added JM
             } else if ((inByte >> 5)&0b010) {//set pin direction, return read

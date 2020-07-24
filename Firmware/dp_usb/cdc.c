@@ -16,7 +16,7 @@ or send a letter to
 // JTR v0.1c	// tidy up added code line code handler to set the SPBRG based on line coding.
 // JTR V0.2a   // 26th Jan 2012
 
-#include "..\dp_usb\usb_stack_globals.h"    // USB stack only defines Not function related.
+#include "../dp_usb/usb_stack_globals.h"    // USB stack only defines Not function related.
 
 #include <string.h>
 
@@ -60,7 +60,7 @@ BYTE cdc_timeout_count = 0;
 BYTE ZLPpending = 0;
 BYTE lock = 0;
 
-BDentry *CDC_Outbdp, *CDC_Inbdp;
+volatile BDentry *CDC_Outbdp, *CDC_Inbdp;
 BYTE CDCFunctionError;
 
 volatile BYTE cdc_trf_state; // JTR don't see that it is really volatile in current context may be in future.

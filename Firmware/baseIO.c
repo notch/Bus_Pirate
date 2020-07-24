@@ -429,7 +429,7 @@ void __attribute__((interrupt, no_auto_psv)) _U1TXInterrupt(void) {
 
 #if defined(BUSPIRATEV4)
 
-extern BDentry *CDC_Outbdp, *CDC_Inbdp;
+extern BDentry *CDC_Outbdp, *CDC_Inbdp; // Notch: not used, is it needed?
 
 void UART1TX(char c) {
     if (bpConfig.quiet) return;
